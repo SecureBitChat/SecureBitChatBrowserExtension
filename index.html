@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+               script-src 'self' ;
+               style-src 'self';
+               font-src 'self' ;
+               connect-src 'self' https: ;
+               img-src 'self' data:;
+               object-src 'none';
+               frame-ancestors 'none';
+               form-action 'self';
+               upgrade-insecure-requests;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+
+    <!-- Basic Meta Tags -->
+    <link rel="icon" type="image/x-icon" href="./logo/favicon.ico">
+    <meta name="theme-color" content="#ff6b35">
+
+    <!-- GitHub Pages SEO -->
+    <meta name="description" content="SecureBit.chat v4.3.120 — P2P messenger with ECDH + DTLS + SAS security and 18-layer military-grade cryptography">
+    <meta name="keywords" content="P2P messenger, ECDH, DTLS, SAS, encryption, WebRTC, privacy, ASN.1 validation, military-grade security, 18-layer defense, MITM protection, PFS">
+    <meta name="author" content="Volodymyr">
+    <link rel="canonical" href="https://github.com/SecureBitChat/securebit-chat/">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="SecureBit.chat - Enhanced Security Edition">
+    <meta property="og:description" content="The most secure P2P messenger with military-grade cryptography">
+    <meta property="og:url" content="https://github.com/SecureBitChat/securebit-chat/">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://github.com/SecureBitChat/securebit-chat/favicon.ico">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SecureBit.chat - Enhanced Security Edition">
+    <meta name="twitter:description" content="P2P messenger with military-grade cryptography">
+
+    <title>SecureBit.chat - Enhanced Security Edition</title>
+    <script src="libs/react/react.production.min.js"></script>
+    <script src="libs/react-dom/react-dom.production.min.js"></script>
+    <link rel="stylesheet" href="assets/tailwind.css">
+    <link rel="icon" type="image/x-icon" href="/logo/favicon.ico">
+    <link rel="stylesheet" href="/assets/fontawesome/css/all.min.css">
+    <link rel="preload" href="/assets/fontawesome/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/assets/fontawesome/webfonts/fa-regular-400.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/assets/fontawesome/webfonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/assets/fonts/inter/inter.css">
+    <link rel="stylesheet" href="src/styles/main.css">
+    <link rel="stylesheet" href="src/styles/animations.css">
+    <link rel="stylesheet" href="src/styles/components.css">
+    <script src="src/scripts/fa-check.js"></script>
+    <script type="module" src="dist/qr-local.js?v=1757383302"></script>
+    <script type="module" src="src/components/QRScanner.js?v=3"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="dist/app.js?v=1757383304"></script>
+    <script type="module" src="dist/app-boot.js?v=1757383304"></script>
+</body>
+</html>

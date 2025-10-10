@@ -1,0 +1,575 @@
+
+.minimal-bg {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;            /* Chrome, Safari, Opera */
+}
+
+/* ============================================ */
+/* FILE TRANSFER STYLES */
+/* ============================================ */
+
+.file-transfer-component {
+    margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    /* Используем dvh для динамической высоты на мобильных */
+    .mobile-chat-height {
+        height: calc(100dvh - 64px) !important;
+    }
+    
+    /* Кнопка прокрутки на мобильном */
+    .scroll-to-bottom-mobile {
+        bottom: 140px !important;
+        right: 16px !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-minimal {
+        height: 56px;
+    }
+    
+    .mobile-chat-height {
+        height: calc(100dvh - 56px) !important;
+    }
+}
+
+.file-drop-zone {
+    border: 2px dashed #4b5563;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(55, 65, 81, 0.1);
+}
+
+.file-drop-zone:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.file-drop-zone.drag-over {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    transform: scale(1.02);
+}
+
+.drop-content {
+    pointer-events: none;
+}
+
+.active-transfers {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.transfer-item {
+    transition: all 0.2s ease;
+}
+
+.transfer-item:hover {
+    transform: translateY(-1px);
+}
+
+.progress-bar {
+    position: relative;
+    height: 6px;
+    background: rgba(75, 85, 99, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.progress-text {
+    position: absolute;
+    top: -20px;
+    right: 0;
+    color: #9ca3af;
+}
+
+.file-transfer-section {
+    border-top: 1px solid rgba(75, 85, 99, 0.1);
+}
+
+@media (max-width: 640px) {
+    .file-drop-zone {
+        padding: 1.5rem;
+    }
+    
+    .transfer-item {
+        padding: 0.75rem;
+    }
+    
+    .progress-text {
+        font-size: 0.75rem;
+    }
+}
+
+.header-minimal {
+    background: rgb(35 36 35 / 13%);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    flex-shrink: 0;
+    height: 64px; 
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+.header-minimal .cursor-pointer:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+}
+.header-minimal .cursor-pointer:active {
+    transform: scale(0.95);
+}
+
+/* The main chat container takes up the rest of the height. */
+.chat-container {
+    /* display: flex; */
+    flex-direction: column;
+    height: calc(100vh - 64px); /* 64px - header height */
+    min-height: 0;
+    /* flex: 1; */
+}
+
+.chat-messages-area {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-input-area {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    background: rgba(42, 43, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(75, 85, 99, 0.2);
+}
+
+/* The message container must occupy the entire available height. */
+.chat-messages-area > div:first-child {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
+    scroll-behavior: smooth;
+    scroll-padding-bottom: 20px;
+    scroll-margin-bottom: 20px;
+}
+
+/* For mobile devices, take into account the height of the virtual keyboard */
+@media (max-width: 768px) {
+    .chat-container {
+        height: calc(100vh - 64px);
+        height: calc(100dvh - 64px); /* dvh to support dynamic height on mobile */
+    }
+}
+
+/* Fix for main application container */
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.card-minimal {
+    background: rgba(42, 43, 42, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(75, 85, 99, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+/* Selected state override (higher precedence than Tailwind bg-*) */
+.card-minimal--selected {
+    background: rgba(249, 115, 22, 0.15) !important; /* orange-500 @ 0.15 */
+    border-color: rgba(249, 115, 22, 1) !important;   /* border-orange-500 */
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3) !important; /* soft ring */
+}
+/* .card-minimal:hover {
+    border-color: rgba(249, 115, 22, 0.3);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+} */
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+.status-connected { background: #10b981; }
+.status-connecting { background: #6b7280; }
+.status-failed { background: #ef4444; }
+.status-disconnected { background: #6b7280; }
+.status-verifying { background: #9ca3af; }
+
+.security-shield {
+    background: linear-gradient(135deg, #2A2B2A 0%, #3a3b3a 100%);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.verification-code {
+    background: rgba(42, 43, 42, 0.8);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    color: #f1f5f9;
+    font-family: 'Monaco', 'Menlo', monospace;
+    letter-spacing: 0.1em;
+    font-size: 1.2em;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.icon-container {
+    width: 40px;
+    height: 40px;
+    background: rgba(42, 43, 42, 0.8);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-container i {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.icon-sm { font-size: 0.875rem; }
+.icon-md { font-size: 1rem; }
+.icon-lg { font-size: 1.125rem; }
+.icon-xl { font-size: 1.25rem; }
+.icon-2xl { font-size: 1.5rem; }
+
+.step-number {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.icon-fallback {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.fas, .far, .fab {
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+/* Improve icon rendering */
+.fas::before, .far::before, .fab::before {
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}
+
+/* Icon loading fallback */
+.icon-loading {
+    opacity: 0.7;
+    animation: iconPulse 1.5s ease-in-out infinite;
+}
+
+/* Fallback icons content */
+.fa-fallback .fas.fa-shield-halved::before { content: "🛡️"; }
+.fa-fallback .fas.fa-shield-alt::before { content: "🛡️"; }
+.fa-fallback .fas.fa-lock::before { content: "🔒"; }
+.fa-fallback .fas.fa-unlock-alt::before { content: "🔓"; }
+.fa-fallback .fas.fa-key::before { content: "🔑"; }
+.fa-fallback .fas.fa-fingerprint::before { content: "👆"; }
+.fa-fallback .fas.fa-exchange-alt::before { content: "🔄"; }
+.fa-fallback .fas.fa-plus::before { content: "➕"; }
+.fa-fallback .fas.fa-link::before { content: "🔗"; }
+.fa-fallback .fas.fa-paste::before { content: "📋"; }
+.fa-fallback .fas.fa-check-circle::before { content: "✅"; }
+.fa-fallback .fas.fa-cogs::before { content: "⚙️"; }
+.fa-fallback .fas.fa-rocket::before { content: "🚀"; }
+.fa-fallback .fas.fa-copy::before { content: "📄"; }
+.fa-fallback .fas.fa-check::before { content: "✓"; }
+.fa-fallback .fas.fa-times::before { content: "✗"; }
+.fa-fallback .fas.fa-exclamation-triangle::before { content: "⚠️"; }
+.fa-fallback .fas.fa-info-circle::before { content: "ℹ️"; }
+.fa-fallback .fas.fa-circle::before { content: "●"; }
+.fa-fallback .fas.fa-paper-plane::before { content: "📤"; }
+.fa-fallback .fas.fa-comments::before { content: "💬"; }
+.fa-fallback .fas.fa-signature::before { content: "✍️"; }
+.fa-fallback .fas.fa-power-off::before { content: "⏻"; }
+.fa-fallback .fas.fa-arrow-left::before { content: "←"; }
+.fa-fallback .fas.fa-chevron-down::before { content: "↓"; }
+
+/* Ensure fallback icons are properly sized & use emoji font */
+.fa-fallback .fas::before {
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-size: inherit;
+}
+
+/* Icon alignment in buttons */
+button i {
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}
+
+/* Pay-per-session UI - Обновленный трехцветный таймер */
+.session-timer {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    transition: all 0.5s ease;
+}
+
+.session-timer:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Анимация пульсации для красной зоны */
+@keyframes timer-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.session-timer.animate-pulse {
+    animation: timer-pulse 2s ease-in-out infinite;
+}
+
+/* Lightning button */
+.lightning-button {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    transition: all 0.3s ease;
+}
+.lightning-button:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #2A2B2A 0%, #3a3b3a 100%);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+}
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #3a3b3a 0%, #4a4b4a 100%);
+    transform: translateY(-1px);
+}
+
+.btn-verify {
+    background: linear-gradient(135deg, #2A2B2A 0%, #3a3b3a 100%);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+}
+.btn-verify:hover {
+    background: linear-gradient(135deg, #3a3b3a 0%, #4a4b4a 100%);
+    transform: translateY(-1px);
+}
+
+/* Wallet logos container & per-wallet filters */
+.wallet-logos-container {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    height: 64px;
+    margin: 20px 0;
+    width: 100%;
+}
+
+.wallet-logos-track {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    animation: walletLogosScroll 30s linear infinite;
+    width: max-content;
+}
+
+.wallet-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 48px;
+    background: rgba(42, 43, 42, 0.8);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f1f5f9;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+.wallet-logo:hover {
+    border-color: rgba(249, 115, 22, 0.3);
+    background: rgba(249, 115, 22, 0.1);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.wallet-logo.bitcoin-lightning { background: transparent; padding: 4px; }
+.wallet-logo.bitcoin-lightning img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.impervious { background: transparent; padding: 4px; }
+.wallet-logo.impervious img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.strike { background: transparent; padding: 4px; }
+.wallet-logo.strike img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.lnbits { background: transparent; padding: 4px; }
+.wallet-logo.lnbits img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.lightning-labs { background: transparent; padding: 4px; }
+.wallet-logo.lightning-labs img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.atomic { background: transparent; padding: 4px; }
+.wallet-logo.atomic img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.breez { background: transparent; padding: 4px; }
+.wallet-logo.breez img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.alby { background: transparent; padding: 4px; }
+.wallet-logo.alby img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.phoenix { background: transparent; }
+.wallet-logo.blixt { background: transparent; }
+.wallet-logo.zeus { background: transparent; padding: 4px; }
+.wallet-logo.zeus img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.wos { background: transparent; padding: 4px; }
+.wallet-logo.wos img { width: 80px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+.wallet-logo.muun { background: transparent; padding: 4px; }
+.wallet-logo.muun img { width: 48px; height: 48px; filter: brightness(0) saturate(100%) invert(43%) sepia(8%) saturate(670%) hue-rotate(202deg) brightness(97%) contrast(86%); }
+
+/* Pause animation on hover for logos */
+.wallet-logos-container:hover .wallet-logos-track {
+    animation-play-state: paused;
+}
+
+.message-slide {
+    animation: messageSlideIn 0.3s ease-out;
+}
+
+.chat-messages-area .message:last-child {
+    scroll-margin-bottom: 20px;
+}
+
+.chat-messages-area {
+    scroll-behavior: smooth;
+    scroll-padding-bottom: 20px;
+}
+
+/* Animations */
+@keyframes iconPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes walletLogosScroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Custom scrollbar */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.7);
+}
+
+.accent-orange { color: #fb923c !important; }
+.accent-green { color: #34d399 !important; }
+.accent-red { color: #f87171 !important; }
+.accent-yellow { color: #fbbf24 !important; }
+.accent-purple { color: #a78bfa !important; }
+.accent-gray { color: #9ca3af !important; }
+.accent-cyan { color: #22d3ee !important; }
+.accent-blue { color: #60a5fa !important; }
+
+/* Ensure icons visible in dark backgrounds */
+.text-secondary i {
+    opacity: 0.8;
+}

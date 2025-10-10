@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBit Chat</title>
+    <link rel="stylesheet" href="assets/tailwind.css">
+    <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="src/styles/main.css">
+    <link rel="stylesheet" href="src/styles/animations.css">
+    <link rel="stylesheet" href="src/styles/components.css">
+    <style>
+        body {
+            width: 400px;
+            height: 600px;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .popup-container {
+            height: 100vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="popup-container bg-gray-900 text-white">
+        <!-- Loading state -->
+        <div id="loading" class="flex items-center justify-center h-full">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <p class="text-gray-400">Loading SecureBit...</p>
+            </div>
+        </div>
+
+        <!-- Main app content will be rendered here -->
+        <div id="app-content" class="hidden">
+            <!-- This will be populated by the popup script -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="libs/react/react.production.min.js"></script>
+    <script src="libs/react-dom/react-dom.production.min.js"></script>
+    <script src="src/scripts/fa-check.js"></script>
+    <script type="module" src="src/crypto/EnhancedSecureCryptoUtils.js"></script>
+    <script type="module" src="src/network/EnhancedSecureWebRTCManager.js"></script>
+    <script type="module" src="dist/qr-local.js"></script>
+    <script type="module" src="dist/app.js"></script>
+    <script type="module" src="dist/app-boot.js"></script>
+    <script type="module" src="popup.js"></script>
+</body>
+</html>
