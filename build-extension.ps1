@@ -36,10 +36,9 @@ if (Test-Path "dist") {
     Copy-Item "dist" "$extensionDir/dist" -Recurse
 }
 
-# Copy node_modules for QR dependencies
-if (Test-Path "node_modules") {
-    Copy-Item "node_modules" "$extensionDir/node_modules" -Recurse
-}
+# Note: node_modules are NOT copied because esbuild bundles all dependencies
+# into the dist/*.js files with --bundle flag
+Write-Host "Skipping node_modules - all dependencies are bundled in dist/*.js files" -ForegroundColor Green
 
 # Copy styles
 Copy-Item "src/styles" "$extensionDir/src/styles" -Recurse
@@ -70,7 +69,7 @@ Copy-Item "dist/qr-local.js" "$extensionDir/dist/qr-local.js"
 # Create extension info file
 $extensionInfo = @"
 SecureBit Chat Extension
-Version: 1.0.0
+Version: 1.2.15
 Build Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 
 Installation Instructions:

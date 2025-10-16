@@ -1,6 +1,6 @@
 # SecureBit Chat Browser Extension
 
-Browser extension for SecureBit Chat — P2P messenger with military-grade cryptography.
+Browser extension for SecureBit Chat - P2P messenger with military-grade cryptography.
 
 ## Features
 
@@ -22,12 +22,10 @@ Browser extension for SecureBit Chat — P2P messenger with military-grade crypt
 ## Usage
 
 ### Main Interface
-
 - Click the extension icon in the toolbar
 - Use all chat features as in the web version
 
 ### Widget on Web Pages
-
 The widget does **NOT** appear automatically on all pages.
 
 **Ways to activate the widget:**
@@ -36,7 +34,6 @@ The widget does **NOT** appear automatically on all pages.
 2. **From popup**: "Show widget" button (if added)
 
 **Widget controls:**
-
 - `Ctrl + Shift + S` - show/hide widget
 - "−" button - minimize widget
 - "×" button - close widget
@@ -47,9 +44,11 @@ To build the extension, use the PowerShell script:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File build-extension.ps1
-Project Structure
-bash
-Copy code
+```
+
+## Project Structure
+
+```
 ├── extension-build/          # Built extension
 ├── extension-manifest.json   # Extension manifest
 ├── extension-background.js   # Background script
@@ -58,25 +57,28 @@ Copy code
 ├── extension-popup.js        # Popup script
 ├── build-extension.ps1       # Build script
 └── README.md                 # This file
-Security Features
-ECDH Key Exchange: Elliptic Curve Diffie-Hellman for secure key generation
+```
 
-DTLS Encryption: Datagram Transport Layer Security for data protection
+## Security Features
 
-SAS Verification: Short Authentication String for identity verification
+- **ECDH Key Exchange**: Elliptic Curve Diffie-Hellman for secure key generation
+- **DTLS Encryption**: Datagram Transport Layer Security for data protection
+- **SAS Verification**: Short Authentication String for identity verification
+- **P2P Architecture**: No central servers, direct peer-to-peer communication
+- **Military-grade**: Enterprise-level security standards
 
-P2P Architecture: No central servers, direct peer-to-peer communication
+## Version
 
-Military-grade: Enterprise-level security standards
+Current version: **1.2.14**
 
-Version
-Current version: 1.2.14
+## License
 
-License
 MIT License
 
-Support
+## Support
+
 For questions or issues, create an issue in the repository.
 
-Documentation
-Installation Guide - Detailed installation instructions
+## Documentation
+
+- [Installation Guide](INSTALLATION_GUIDE_EN.md) - Detailed installation instructions
