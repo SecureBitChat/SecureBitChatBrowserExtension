@@ -280,12 +280,17 @@
                     toggleQrManualMode,
                     nextQrFrame,
                     prevQrFrame,
-                    markAnswerCreated
+                    markAnswerCreated,
+                    notificationIntegrationRef,
+                    isGeneratingKeys,
+                    handleCreateOffer
                 }) => {
                     const [mode, setMode] = React.useState('select');
+                    const [notificationPermissionRequested, setNotificationPermissionRequested] = React.useState(false);
         
                     const resetToSelect = () => {
                         setMode('select');
+                        setIsGeneratingKeys(false);
                         onClearData();
                     };
         
@@ -295,6 +300,110 @@
         
                     const handleVerificationReject = () => {
                         onVerifyConnection(false);
+                    };
+                    
+                    // Request notification permission on first user interaction
+                    const requestNotificationPermissionOnInteraction = async () => {
+                        if (notificationPermissionRequested) {
+                            return; // Already requested
+                        }
+                        
+                        try {
+                            // Check if Notification API is supported
+                            if (!('Notification' in window)) {
+                                return;
+                            }
+                            
+                            // Check if we're in a secure context
+                            if (!window.isSecureContext && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                                return;
+                            }
+                            
+                            // Check current permission status
+                            const currentPermission = Notification.permission;
+                            
+                            // Only request if permission is default (not granted or denied)
+                            if (currentPermission === 'default') {
+                                const permission = await Notification.requestPermission();
+                                
+                                if (permission === 'granted') {
+                                    // Initialize notification integration immediately
+                                    try {
+                                        if (window.NotificationIntegration && webrtcManagerRef.current) {
+                                            const integration = new window.NotificationIntegration(webrtcManagerRef.current);
+                                            await integration.init();
+                                            
+                                            // Store reference for cleanup
+                                            notificationIntegrationRef.current = integration;
+                                        }
+                                    } catch (error) {
+                                        // Handle error silently
+                                    }
+                                    
+                                    // Send welcome notification
+                                    setTimeout(() => {
+                                        try {
+                                            const welcomeNotification = new Notification('SecureBit Chat', {
+                                                body: 'Notifications enabled! You will receive alerts for new messages.',
+                                                icon: '/logo/icon-192x192.png',
+                                                tag: 'welcome-notification'
+                                            });
+                                            
+                                            welcomeNotification.onclick = () => {
+                                                welcomeNotification.close();
+                                            };
+                                            
+                                            setTimeout(() => {
+                                                welcomeNotification.close();
+                                            }, 5000);
+                                            
+                                        } catch (error) {
+                                            // Handle error silently
+                                        }
+                                    }, 1000);
+                                    
+                                }
+                            } else if (currentPermission === 'granted') {
+                                // Initialize notification integration immediately
+                                try {
+                                    if (window.NotificationIntegration && webrtcManagerRef.current && !notificationIntegrationRef.current) {
+                                        const integration = new window.NotificationIntegration(webrtcManagerRef.current);
+                                        await integration.init();
+                                        
+                                        // Store reference for cleanup
+                                        notificationIntegrationRef.current = integration;
+                                    }
+                                } catch (error) {
+                                    // Handle error silently
+                                }
+                                
+                                // Test notification to confirm it works
+                                setTimeout(() => {
+                                    try {
+                                        const testNotification = new Notification('SecureBit Chat', {
+                                            body: 'Notifications are working! You will receive alerts for new messages.',
+                                            icon: '/logo/icon-192x192.png',
+                                            tag: 'test-notification'
+                                        });
+                                        
+                                        testNotification.onclick = () => {
+                                            testNotification.close();
+                                        };
+                                        
+                                        setTimeout(() => {
+                                            testNotification.close();
+                                        }, 5000);
+                                    } catch (error) {
+                                        // Handle error silently
+                                    }
+                                }, 1000);
+                            }
+                            
+                            setNotificationPermissionRequested(true);
+                            
+                        } catch (error) {
+                            // Handle error silently
+                        }
                     };
         
                     if (showVerification) {
@@ -346,7 +455,16 @@
                                     // Create Connection
                                     React.createElement('div', {
                                         key: 'create',
-                                        onClick: () => setMode('create'),
+                                        onClick: () => {
+                                            requestNotificationPermissionOnInteraction();
+                                            setMode('create');
+                                            // Автоматически запускаем генерацию ключей
+                                            setTimeout(() => {
+                                                if (webrtcManagerRef.current) {
+                                                    handleCreateOffer();
+                                                }
+                                            }, 100);
+                                        },
                                         className: "card-minimal rounded-xl p-6 cursor-pointer group flex-1 create"
                                     }, [
                                         React.createElement('div', {
@@ -418,7 +536,10 @@
                                     // Join Connection
                                     React.createElement('div', {
                                         key: 'join',
-                                        onClick: () => setMode('join'),
+                                        onClick: () => {
+                                            requestNotificationPermissionOnInteraction();
+                                            setMode('join');
+                                        },
                                         className: "card-minimal rounded-xl p-6 cursor-pointer group flex-1 join"
                                     }, [
                                         React.createElement('div', {
@@ -474,6 +595,14 @@
         
                                            
                                 React.createElement(SecurityFeatures, { key: 'security-features' }),
+
+                                React.createElement(Testimonials, { key: 'testimonials' }),
+        
+                                React.createElement(UniqueFeatureSlider, { key: 'unique-features-slider' }),
+        
+                                React.createElement(DownloadApps, { key: 'download-apps' }),
+        
+                                React.createElement(ComparisonTable, { key: 'comparison-table' }),    
                                 
                                 React.createElement(Roadmap, { key: 'roadmap' }),
                             ])
@@ -507,7 +636,7 @@
                                         className: "text-xl font-semibold text-primary mb-2"
                                     }, 'Creating a secure channel')
                                 ]),
-        
+
                                 // Step 1
                                 !showAnswerStep && React.createElement('div', {
                                     key: 'step1',
@@ -530,16 +659,15 @@
                                         key: 'description',
                                         className: "text-secondary text-sm mb-4"
                                     }, "Creating cryptographically strong keys and codes to protect against attacks"),
-                                    !showOfferStep && React.createElement('button', {
-                                        key: 'create-btn',
-                                        onClick: onCreateOffer,
-                                        disabled: connectionStatus === 'connecting',
-                                        className: `w-full btn-primary text-white py-3 px-4 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`
+                                    !showOfferStep && isGeneratingKeys && React.createElement('div', {
+                                        key: 'loading-state',
+                                        className: "w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center"
                                     }, [
                                         React.createElement('i', {
-                                            className: 'fas fa-shield-alt mr-2'
+                                            key: 'spinner',
+                                            className: 'fas fa-spinner fa-spin mr-2'
                                         }),
-                                        'Create secure keys'
+                                        'Generating secure keys...'
                                     ]),
         
                                     showOfferStep && React.createElement('div', {
@@ -583,7 +711,7 @@
                                                     } catch { return typeof offerData === 'object' ? JSON.stringify(offerData) : (offerData || ''); }
                                                 })(),
                                                     className: "flex-1 px-3 py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 rounded text-sm font-medium"
-                                                }, 'Copy invitation code')
+                                                }, 'Copy invitation code'),
                                             ]),
                                             showQRCode && qrCodeUrl && React.createElement('div', {
                                                 key: 'qr-container',
@@ -645,63 +773,8 @@
                                             ])
                                         ])
                                     ])
-                                ]),
+                                ]),       
         
-                                // Step 2 - Session Type Selection
-                                // showOfferStep && React.createElement('div', {
-                                //     key: 'step2',
-                                //     className: "card-minimal rounded-xl p-6"
-                                // }, [
-                                //     React.createElement('div', {
-                                //         key: 'step-header',
-                                //         className: "flex items-center mb-4"
-                                //     }, [
-                                //         React.createElement('div', {
-                                //             key: 'number',
-                                //             className: "w-8 h-8 bg-green-500 text-white rounded-lg flex items-center justify-center font-semibold text-sm mr-3"
-                                //         }, '2'),
-                                //         React.createElement('h3', {
-                                //             key: 'title',
-                                //             className: "text-lg font-medium text-primary"
-                                //         }, "Select session type")
-                                //     ]),
-                                //     React.createElement('p', {
-                                //         key: 'description',
-                                //         className: "text-secondary text-sm mb-4"
-                                //     }, "Choose a session plan or use limited demo mode for testing."),
-                                //     React.createElement(SessionTypeSelector, {
-                                //         key: 'session-selector',
-                                //         onSelectType: (sessionType) => {
-                                //             // Save the selected session type
-                                //             setSelectedSessionType(sessionType);
-                                //             console.log('🎯 Session type selected:', sessionType);
-                                            
-                                //             // FIX: For demo sessions, we immediately call automatic activation
-                                //             if (sessionType === 'demo') {
-                                //                 console.log('🎮 Demo session selected, scheduling automatic activation...');
-                                //                 // Delay activation for 2 seconds to stabilize
-                                //                 setTimeout(() => {
-                                //                     if (sessionManager) {
-                                //                         console.log('🚀 Triggering demo session activation from selection...');
-                                //                         handleDemoVerification();
-                                //                     }
-                                //                 }, 2000);
-                                //             }
-                                            
-                                //             // Open a modal payment window
-                                //             if (typeof window.showPaymentModal === 'function') {
-                                //                 window.showPaymentModal(sessionType);
-                                //             } else {
-                                //                 // Fallback - show session information
-                                //                 console.log('Selected session type:', sessionType);
-                                //             }
-                                //         },
-                                //         onCancel: resetToSelect,
-                                //         sessionManager: window.sessionManager
-                                //     })
-                                // ]),
-        
-                                // Step 3 - Waiting for response
                                 showOfferStep && React.createElement('div', {
                                     key: 'step2',
                                     className: "card-minimal rounded-xl p-6"
@@ -737,7 +810,7 @@
                                                 className: 'fas fa-qrcode mr-2'
                                             }),
                                             'Scan QR Code'
-                                        ])
+                                        ]),
                                     ]),
                                     React.createElement('textarea', {
                                         key: 'input',
@@ -1069,6 +1142,7 @@
                         }
                     };
                 };
+        
         
                const EnhancedChatInterface = ({
             messages,
@@ -1402,8 +1476,12 @@
                     const [qrCodeUrl, setQrCodeUrl] = React.useState('');
                     const [showQRScanner, setShowQRScanner] = React.useState(false);
                     const [showQRScannerModal, setShowQRScannerModal] = React.useState(false);
+                    const [isGeneratingKeys, setIsGeneratingKeys] = React.useState(false);
+                    
+
                     const [isVerified, setIsVerified] = React.useState(false);
                     const [securityLevel, setSecurityLevel] = React.useState(null);
+                    const [sessionTimeLeft, setSessionTimeLeft] = React.useState(0);
                     
                     // Mutual verification states
                     const [localVerificationConfirmed, setLocalVerificationConfirmed] = React.useState(false);
@@ -1413,7 +1491,6 @@
                     // PAKE password states removed - using SAS verification instead
                     
                     // Session state - all security features enabled by default
-                    const [sessionTimeLeft, setSessionTimeLeft] = React.useState(0);
                     const [pendingSession, setPendingSession] = React.useState(null);
                     
                     // All security features are enabled by default - no payment required
@@ -1451,7 +1528,7 @@
                         const maxPreserveTime = 300000;
         
 
-                        const hasAnswerData = (answerData && answerData.trim().length > 0) || 
+                        const hasAnswerData = (answerData && typeof answerData === 'string' && answerData.trim().length > 0) || 
                                             (answerInput && answerInput.trim().length > 0);
 
                         const hasAnswerQR = qrCodeUrl && qrCodeUrl.trim().length > 0;
@@ -1498,6 +1575,7 @@
                     }, []);
         
                     const webrtcManagerRef = React.useRef(null);
+                    const notificationIntegrationRef = React.useRef(null);
                     // Expose for modules/UI that run outside this closure (e.g., inline handlers)
                     // Safe because it's a ref object and we maintain it centrally here
                     window.webrtcManagerRef = webrtcManagerRef;
@@ -1589,14 +1667,7 @@
                         }
                     }, []);
         
-                    // Session time ticker - unlimited sessions
-                    React.useEffect(() => {
-                        const timer = setInterval(() => {
-                            // Sessions are unlimited - no time restrictions
-                                setSessionTimeLeft(0);
-                        }, 1000);
-                        return () => clearInterval(timer);
-                    }, []);
+                    // Session time ticker removed - sessions are unlimited
         
                     // Sessions are unlimited - no expiration handler needed
         
@@ -1712,8 +1783,8 @@
                                 setBothVerificationsConfirmed(false);
                                 
                                 // Clear connection data
-                                setOfferData(null);
-                                setAnswerData(null);
+                                setOfferData('');
+                                setAnswerData('');
                                 setOfferInput('');
                                 setAnswerInput('');
                                 setShowOfferStep(false);
@@ -1722,16 +1793,14 @@
                                 setVerificationCode('');
                                 setSecurityLevel(null);
                                 
-                                // Reset session and timer
-                                    setSessionTimeLeft(0);
                                 
                                 // Return to main page after a short delay
                                 setTimeout(() => {
                                     setConnectionStatus('disconnected');
                                     setShowVerification(false);
                                     
-                                    setOfferData(null);
-                                    setAnswerData(null);
+                                    setOfferData('');
+                                    setAnswerData('');
                                     setOfferInput('');
                                     setAnswerInput('');
                                     setShowOfferStep(false);
@@ -1759,8 +1828,8 @@
                                     setBothVerificationsConfirmed(false);
                                     
                                     // Clear connection data
-                                    setOfferData(null);
-                                    setAnswerData(null);
+                                    setOfferData('');
+                                    setAnswerData('');
                                     setOfferInput('');
                                     setAnswerInput('');
                                     setShowOfferStep(false);
@@ -1839,7 +1908,21 @@
                             handleVerificationStateChange
                         );
         
-                        handleMessage(' SecureBit.chat Enhanced Security Edition v4.3.120 - ECDH + DTLS + SAS initialized. Ready to establish a secure connection with ECDH key exchange, DTLS fingerprint verification, and SAS authentication to prevent MITM attacks.', 'system');
+                        // Initialize notification integration if permission was already granted
+                        if (Notification.permission === 'granted' && window.NotificationIntegration && !notificationIntegrationRef.current) {
+                            try {
+                                const integration = new window.NotificationIntegration(webrtcManagerRef.current);
+                                integration.init().then(() => {
+                                    notificationIntegrationRef.current = integration;
+                                }).catch((error) => {
+                                    // Handle error silently
+                                });
+                            } catch (error) {
+                                // Handle error silently
+                            }
+                        }
+        
+                        handleMessage(' SecureBit.chat Enhanced Security Edition v4.4.18 - ECDH + DTLS + SAS initialized. Ready to establish a secure connection with ECDH key exchange, DTLS fingerprint verification, and SAS authentication to prevent MITM attacks.', 'system');
         
                         const handleBeforeUnload = (event) => {
                             if (event.type === 'beforeunload' && !isTabSwitching) {
@@ -2715,11 +2798,14 @@
                             return true;
                         }
                     };
+
+
+
         
                     const handleCreateOffer = async () => {
                         try {
                             // All security features are enabled by default
-        
+                            setIsGeneratingKeys(true);
                             setOfferData('');
                             setShowOfferStep(false);
                             setShowQRCode(false);
@@ -2823,6 +2909,8 @@
                                         id: Date.now(),
                                         timestamp: Date.now()
                                     }]);
+                                } finally {
+                                    setIsGeneratingKeys(false);
                                 }
                     };
         
@@ -2849,15 +2937,26 @@
         
                                 let offer;
                                 try {
+                                    console.log('DEBUG: Processing offer input:', offerInput.trim().substring(0, 100) + '...');
+                                    console.log('DEBUG: decodeAnyPayload available:', typeof window.decodeAnyPayload === 'function');
+                                    console.log('DEBUG: decompressIfNeeded available:', typeof window.decompressIfNeeded === 'function');
+                                    
                                     // Prefer binary decode first, then gzip JSON
                                     if (typeof window.decodeAnyPayload === 'function') {
+                                        console.log('DEBUG: Using decodeAnyPayload...');
                                         const any = window.decodeAnyPayload(offerInput.trim());
+                                        console.log('DEBUG: decodeAnyPayload result type:', typeof any);
+                                        console.log('DEBUG: decodeAnyPayload result:', any);
                                         offer = (typeof any === 'string') ? JSON.parse(any) : any;
                                     } else {
+                                        console.log('DEBUG: Using decompressIfNeeded...');
                                         const rawText = (typeof window.decompressIfNeeded === 'function') ? window.decompressIfNeeded(offerInput.trim()) : offerInput.trim();
+                                        console.log('DEBUG: decompressIfNeeded result:', rawText.substring(0, 100) + '...');
                                         offer = JSON.parse(rawText);
                                     }
+                                    console.log('DEBUG: Final offer:', offer);
                                 } catch (parseError) {
+                                    console.error('DEBUG: Parse error:', parseError);
                                     throw new Error(`Invalid invitation format: ${parseError.message}`);
                                 }
         
@@ -2935,7 +3034,7 @@
                                     }
                                     
                                     // Mark answer as created for state management
-                                    if (e.target.value.trim().length > 0) {
+                                    if (answerInput.trim().length > 0) {
                                     if (typeof markAnswerCreated === 'function') {
                                         markAnswerCreated();
                                     }
@@ -3134,11 +3233,47 @@
                         }
                     };
         
-                    const handleVerifyConnection = (isValid) => {
+                    const handleVerifyConnection = async (isValid) => {
                         if (isValid) {
                             webrtcManagerRef.current.confirmVerification();
                             // Mark local verification as confirmed
                             setLocalVerificationConfirmed(true);
+                            
+                            // Initialize notification integration if permission was granted
+                            try {
+                                if (window.NotificationIntegration && webrtcManagerRef.current && !notificationIntegrationRef.current) {
+                                    const integration = new window.NotificationIntegration(webrtcManagerRef.current);
+                                    await integration.init();
+                                    
+                                    // Store reference for cleanup
+                                    notificationIntegrationRef.current = integration;
+                                    
+                                    
+                                    // Check if permission was already granted
+                                    const status = integration.getStatus();
+                                    if (status.permission === 'granted') {
+                                        setMessages(prev => [...prev, { 
+                                            message: '✓ Notifications enabled - you will receive alerts when the tab is inactive', 
+                                            type: 'system',
+                                            id: Date.now(),
+                                            timestamp: Date.now()
+                                        }]);
+                                    } else {
+                                        setMessages(prev => [...prev, { 
+                                            message: 'ℹ Notifications disabled - you can enable them using the button on the main page', 
+                                            type: 'system',
+                                            id: Date.now(),
+                                            timestamp: Date.now()
+                                        }]);
+                                    }
+                                } else if (notificationIntegrationRef.current) {
+                                } else {
+                                    // Handle error silently
+                                }
+                            } catch (error) {
+                                console.warn('Failed to initialize notifications:', error);
+                                // Don't show error to user, notifications are optional
+                            }
                         } else {
                             setMessages(prev => [...prev, { 
                                 message: ' Verification rejected. The connection is unsafe! Session reset..', 
@@ -3156,8 +3291,8 @@
                             
                             // Reset UI to initial state
                             setConnectionStatus('disconnected');
-                            setOfferData(null);
-                            setAnswerData(null);
+                            setOfferData('');
+                            setAnswerData('');
                             setOfferInput('');
                             setAnswerInput('');
                             setShowOfferStep(false);
@@ -3212,6 +3347,7 @@
                         setOfferInput('');
                         setAnswerInput('');
                         setShowOfferStep(false);
+                        setIsGeneratingKeys(false);
 
                         if (!shouldPreserveAnswerData()) {
                             setShowAnswerStep(false);
@@ -3256,6 +3392,7 @@
                     };
         
                     const handleDisconnect = () => {
+                        try {
                             setSessionTimeLeft(0);
                         
                         // Mark as user-initiated disconnect
@@ -3264,11 +3401,18 @@
                             isUserInitiatedDisconnect: true 
                         });
                         
-                        // Cleanup session state
+                            // Cleanup WebRTC connection
                         if (webrtcManagerRef.current) {
                             webrtcManagerRef.current.disconnect();
                         }
+                        
+                        // Cleanup notification integration
+                        if (notificationIntegrationRef.current) {
+                            notificationIntegrationRef.current.cleanup();
+                            notificationIntegrationRef.current = null;
+                        }
         
+                            // Clear all connection-related states
                         setKeyFingerprint('');
                         setVerificationCode('');
                         setSecurityLevel(null);
@@ -3281,45 +3425,50 @@
                         setRemoteVerificationConfirmed(false);
                         setBothVerificationsConfirmed(false);
         
-                        // Reset UI to initial state (user-initiated disconnect always clears data)
-                        setConnectionStatus('disconnected');
-                        setShowVerification(false);
-                        setOfferData(null);
-                        setAnswerData(null);
+                        // Reset UI to initial state
+                        setOfferData('');
+                        setAnswerData('');
                         setOfferInput('');
                         setAnswerInput('');
                         setShowOfferStep(false);
                         setShowAnswerStep(false);
-                        setKeyFingerprint('');
-                        setVerificationCode('');
-                        setSecurityLevel(null);
-                        setIsVerified(false);
-        
+                        setIsGeneratingKeys(false);
+                            setShowQRCode(false);
+                            setQrCodeUrl('');
+                            setShowQRScanner(false);
+                            setShowQRScannerModal(false);
+            
+                            // Clear messages
                         setMessages([]);
         
+                            // Clear console
                         if (typeof console.clear === 'function') {
                             console.clear();
                         }
         
+                            // Dispatch disconnect events
                         document.dispatchEvent(new CustomEvent('peer-disconnect'));
                         document.dispatchEvent(new CustomEvent('disconnected'));
         
+                            // Dispatch session cleanup event
                         document.dispatchEvent(new CustomEvent('session-cleanup', {
                             detail: { 
                                 timestamp: Date.now(),
                                 reason: 'manual_disconnect'
                             }
                         }));
+                            
+                            // Clear data and reset session timer
+                            handleClearData();
         
                         setTimeout(() => {
                                 setSessionTimeLeft(0);
                         }, 500);
         
-                        handleClearData();
-        
-                        setTimeout(() => {
-                            // Session manager removed - all features enabled by default
-                        }, 1000);
+                            console.log('Disconnect completed successfully');
+                        } catch (error) {
+                            console.error('Error during disconnect:', error);
+                        }
                     };
         
                     const handleSessionActivated = (session) => {
@@ -3454,7 +3603,7 @@
                     return React.createElement('div', { 
                         className: "minimal-bg min-h-screen" 
                     }, [
-                        React.createElement(EnhancedMinimalHeader, {
+                        window.EnhancedMinimalHeader && React.createElement(window.EnhancedMinimalHeader, {
                             key: 'header',
                             status: connectionStatus,
                             fingerprint: keyFingerprint,
@@ -3463,7 +3612,6 @@
                             isConnected: isConnectedAndVerified,
                             securityLevel: securityLevel,
                             // sessionManager removed - all features enabled by default
-                            sessionTimeLeft: sessionTimeLeft,
                             webrtcManager: webrtcManagerRef.current
                         }),
         
@@ -3522,7 +3670,10 @@
                                     nextQrFrame: nextQrFrame,
                                     prevQrFrame: prevQrFrame,
                                     // PAKE passwords removed - using SAS verification instead
-                                    markAnswerCreated: markAnswerCreated
+                                    markAnswerCreated: markAnswerCreated,
+                                    notificationIntegrationRef: notificationIntegrationRef,
+                                    isGeneratingKeys: isGeneratingKeys,
+                                    handleCreateOffer: handleCreateOffer
                                 })
                         ),
                         
@@ -3600,7 +3751,8 @@
                                     ])
                                 ])
                             ])
-                        ])
+                        ]),
+                        
                         
                     ]);
                 };
@@ -3631,6 +3783,7 @@
                     if (!window.initializeApp) {
                         window.initializeApp = initializeApp;
                     }
-                }
+                };
+                
                 // Render Enhanced Application
                 ReactDOM.render(React.createElement(EnhancedSecureP2PChat), document.getElementById('root'));

@@ -66,10 +66,14 @@ Copy-Item "dist/app.js" "$extensionDir/dist/app.js"
 Copy-Item "dist/app-boot.js" "$extensionDir/dist/app-boot.js"
 Copy-Item "dist/qr-local.js" "$extensionDir/dist/qr-local.js"
 
+# Get version from package.json
+$packageJson = Get-Content "package.json" | ConvertFrom-Json
+$version = $packageJson.version
+
 # Create extension info file
 $extensionInfo = @"
 SecureBit Chat Extension
-Version: 1.2.15
+Version: $version
 Build Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 
 Installation Instructions:

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SecureBit Chat Extension",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "description": "P2P messenger with ECDH + DTLS + SAS security, military-grade cryptography",
   "permissions": [
     "storage",

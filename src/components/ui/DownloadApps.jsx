@@ -9,7 +9,6 @@ const DownloadApps = () => {
         { id: 'chrome', name: 'Chrome', subtitle: 'Browser Extension', icon: 'fab fa-chrome', platform: 'Browser', isActive: false, url: '#', color: 'yellow' },
         { id: 'edge', name: 'Edge', subtitle: 'Browser Extension', icon: 'fab fa-edge', platform: 'Browser', isActive: false, url: '#', color: 'blue' },
         { id: 'opera', name: 'Opera', subtitle: 'Browser Extension', icon: 'fab fa-opera', platform: 'Browser', isActive: false, url: '#', color: 'red' },
-        { id: 'firefox', name: 'Firefox', subtitle: 'Browser Extension', icon: 'fab fa-firefox-browser', platform: 'Browser', isActive: false, url: '#', color: 'orange' },
     ];
 
     const handleDownload = (app) => {
