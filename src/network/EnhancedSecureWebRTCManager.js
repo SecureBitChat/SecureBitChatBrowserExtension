@@ -101,7 +101,7 @@ class EnhancedSecureWebRTCManager {
     };
 
     //   Static debug flag instead of this._debugMode
-    static DEBUG_MODE = false; // Set to true during development, false in production
+    static DEBUG_MODE = true; // Set to true during development, false in production
 
 
     constructor(onMessage, onStatusChange, onKeyExchange, onVerificationRequired, onAnswerError = null, onVerificationStateChange = null, config = {}) {
@@ -167,8 +167,6 @@ class EnhancedSecureWebRTCManager {
         } : null;
     };
     this._secureLog('info', '🔒 Enhanced WebRTC Manager initialized with secure API');
-    this.currentSessionType = null;
-    this.currentSecurityLevel = 'basic';
     this.sessionConstraints = null;
     this.peerConnection = null;
     this.dataChannel = null;
@@ -406,12 +404,13 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
                 
             // 3. Fake Traffic Generation
             this.fakeTrafficConfig = {
-                enabled: this._config.fakeTraffic.enabled,
-                minInterval: this._config.fakeTraffic.minInterval,
-                maxInterval: this._config.fakeTraffic.maxInterval,
-                minSize: this._config.fakeTraffic.minSize,
-                maxSize: this._config.fakeTraffic.maxSize,
-                patterns: this._config.fakeTraffic.patterns
+                enabled: this._config.fakeTraffic?.enabled || false,
+                minInterval: this._config.fakeTraffic?.minInterval || 15000,
+                maxInterval: this._config.fakeTraffic?.maxInterval || 30000,
+                minSize: this._config.fakeTraffic?.minSize || 64,
+                maxSize: this._config.fakeTraffic?.maxSize || 1024,
+                patterns: this._config.fakeTraffic?.patterns || ['heartbeat', 'status', 'ping'],
+                randomDecoyIntervals: this._config.fakeTraffic?.randomDecoyIntervals || true
             };
             this.fakeTrafficTimer = null;
             this.lastFakeTraffic = 0;
@@ -1771,8 +1770,20 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
         
         //   Malicious pattern detection
         this._maliciousPatterns = [
-            /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, // Script tags
-            /javascript:/gi, // JavaScript protocol
+            // Enhanced script tag detection that handles edge cases
+            /<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, // Standard </script>
+            /<script\b[^>]*>[\s\S]*?<\/script\s+[^>]*>/gi, // </script with attributes>
+            /<script\b[^>]*>[\s\S]*$/gi, // Malformed script tags without closing
+            // Additional dangerous tags
+            /<iframe\b[^>]*>[\s\S]*?<\/iframe\s*>/gi, // iframe tags
+            /<object\b[^>]*>[\s\S]*?<\/object\s*>/gi, // object tags
+            /<embed\b[^>]*>/gi, // embed tags
+            /<applet\b[^>]*>[\s\S]*?<\/applet\s*>/gi, // applet tags
+            /<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, // style tags
+            // Dangerous protocols
+            /javascript\s*:/gi, // JavaScript protocol
+            /data\s*:/gi, // Data protocol
+            /vbscript\s*:/gi, // VBScript protocol
             /data:text\/html/gi, // Data URLs with HTML
             /on\w+\s*=/gi, // Event handlers
             /eval\s*\(/gi, // eval() calls
@@ -2311,7 +2322,7 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
         
         //   Create simple getSecurityStatus method
         secureAPI.getSecurityStatus = () => ({
-            securityLevel: this.currentSecurityLevel || 'basic',
+            securityLevel: 'maximum',
             stage: 'initialized',
             activeFeaturesCount: Object.values(this.securityFeatures || {}).filter(Boolean).length
         });
@@ -3622,7 +3633,14 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
 
             const dv = new DataView(bits);
             const n = (dv.getUint32(0) ^ dv.getUint32(4)) >>> 0;
-            const sasCode = String(n % 10_000_000).padStart(7, '0'); 
+            
+            // Use rejection sampling to avoid bias in SAS code generation
+            let sasValue;
+            do {
+                sasValue = crypto.getRandomValues(new Uint32Array(1))[0];
+            } while (sasValue >= 4294967296 - (4294967296 % 10_000_000));
+            
+            const sasCode = String(sasValue % 10_000_000).padStart(7, '0'); 
 
 
             this._secureLog('info', 'SAS code computed successfully', {
@@ -4463,32 +4481,69 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
         }
     }
     
-    //   Generate fingerprint mask for anti-fingerprinting with enhanced randomization
-    generateFingerprintMask() {
-        //   Enhanced randomization to prevent side-channel attacks
-        const cryptoRandom = crypto.getRandomValues(new Uint8Array(128));
-        
-        const mask = {
-            timingOffset: cryptoRandom[0] % 1000 + cryptoRandom[1] % 500, // 0-1500ms
-            sizeVariation: (cryptoRandom[2] % 50 + 75) / 100, // 0.75 to 1.25
-            noisePattern: Array.from(crypto.getRandomValues(new Uint8Array(64))), // Increased size
-            headerVariations: [
-                'X-Client-Version', 'X-Session-ID', 'X-Request-ID', 'X-Timestamp', 'X-Signature',
-                'X-Secure', 'X-Encrypted', 'X-Protected', 'X-Safe', 'X-Anonymous', 'X-Private'
-            ],
-            noiseIntensity: cryptoRandom[3] % 100 + 50, // 50-150%
-            sizeMultiplier: (cryptoRandom[4] % 50 + 75) / 100, // 0.75-1.25
-            timingVariation: cryptoRandom[5] % 1000 + 100 // 100-1100ms
-        };
-        return mask;
-    }
+    // Helper function: unbiased integer in [min, max]
+       getSafeRandomInt(min, max) {
+            if (!Number.isInteger(min) || !Number.isInteger(max)) {
+                throw new Error('getSafeRandomInt requires integer min and max');
+            }
+            if (min >= max) {
+                throw new Error('min must be less than max');
+            }
+            
+            const range = max - min + 1;
+            const bitsNeeded = Math.ceil(Math.log2(range));
+            const bytesNeeded = Math.ceil(bitsNeeded / 8);
+            const mask = (1 << bitsNeeded) - 1;
+            
+            let randomValue;
+            do {
+                const randomBytes = crypto.getRandomValues(new Uint8Array(bytesNeeded));
+
+                randomValue = 0;
+                for (let i = 0; i < bytesNeeded; i++) {
+                    randomValue = (randomValue * 256) + randomBytes[i];
+                }
+
+                randomValue = randomValue & mask;
+                
+            } while (randomValue >= range); 
+
+            return min + randomValue;
+        }
+
+        getSafeRandomFloat(minFloat, maxFloat, steps = 1000) {
+            if (typeof minFloat !== 'number' || typeof maxFloat !== 'number') {
+                throw new Error('getSafeRandomFloat requires numeric min and max');
+            }
+            if (minFloat >= maxFloat) {
+                throw new Error('minFloat must be less than maxFloat');
+            }
+            const randomIndex = this.getSafeRandomInt(0, steps);
+            
+            const step = (maxFloat - minFloat) / steps;
+
+            return minFloat + (randomIndex * step);
+        }
+
+        generateFingerprintMask() {
+            const mask = {
+                timingOffset: this.getSafeRandomInt(0, 1500),
+                sizeVariation: this.getSafeRandomFloat(0.75, 1.25, 1000),
+                noisePattern: Array.from(crypto.getRandomValues(new Uint8Array(64))),
+                headerVariations: [
+                    'X-Client-Version', 'X-Session-ID', 'X-Request-ID', 'X-Timestamp', 'X-Signature',
+                    'X-Secure', 'X-Encrypted', 'X-Protected', 'X-Safe', 'X-Anonymous', 'X-Private'
+                ],
+                noiseIntensity: this.getSafeRandomInt(50, 150),
+                sizeMultiplier: this.getSafeRandomFloat(0.75, 1.25, 1000),
+                timingVariation: this.getSafeRandomInt(100, 1100)
+            };
+            return mask;
+        }
 
     // Security configuration - all features enabled by default
-    configureSecurityForSession(sessionType, securityLevel) {
-        this._secureLog('info', `🔧 Configuring security for ${sessionType} session (${securityLevel} level)`);
-        
-        this.currentSessionType = sessionType;
-        this.currentSecurityLevel = securityLevel;
+    configureSecurityForSession() {
+        this._secureLog('info', '🔧 Configuring security - all features enabled by default');
         
         // All security features are enabled by default - no payment required
             this.sessionConstraints = {};
@@ -4499,7 +4554,7 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
             
             this.applySessionConstraints();
             
-        this._secureLog('info', `✅ Security configured for ${sessionType} - all features enabled`, { constraints: this.sessionConstraints });
+        this._secureLog('info', '✅ Security configured - all features enabled', { constraints: this.sessionConstraints });
 
             if (!this._validateCryptographicSecurity()) {
                 this._secureLog('error', '🚨 CRITICAL: Cryptographic security validation failed after session configuration');
@@ -4507,7 +4562,6 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
                 if (this.onStatusChange) {
                     this.onStatusChange('security_breach', {
                         type: 'crypto_security_failure',
-                        sessionType: sessionType,
                         message: 'Cryptographic security validation failed after session configuration'
                     });
                 }
@@ -4644,27 +4698,21 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
 
     // Security Level Notification
     notifySecurityLevel() {
-        // Avoid duplicate notifications for the same security level
-        if (this.lastSecurityLevelNotification === this.currentSecurityLevel) {
+        // Avoid duplicate notifications
+        if (this.lastSecurityLevelNotification === 'maximum') {
             return; // prevent duplication
         }
         
-        this.lastSecurityLevelNotification = this.currentSecurityLevel;
+        this.lastSecurityLevelNotification = 'maximum';
         
-        const levelMessages = {
-            'basic': '🔒 Basic Security Active - Demo session with essential protection',
-            'enhanced': '🔐 Enhanced Security Active - Paid session with advanced protection',
-            'maximum': '🛡️ Maximum Security Active - Premium session with complete protection'
-        };
-
-        const message = levelMessages[this.currentSecurityLevel] || levelMessages['basic'];
+        const message = '🛡️ Maximum Security Active - All features enabled';
         
         if (this.onMessage) {
             this.deliverMessageToUI(message, 'system');
         }
 
-        // Showing details of functions for paid sessions
-        if (this.currentSecurityLevel !== 'basic' && this.onMessage) {
+        // Showing details of active features
+        if (this.onMessage) {
             const activeFeatures = Object.entries(this.securityFeatures)
                 .filter(([key, value]) => value === true)
                 .map(([key]) => key.replace('has', '').replace(/([A-Z])/g, ' $1').trim().toLowerCase())
@@ -4926,8 +4974,7 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
                 
                 // FIX: Increase intervals to reduce load
                 const nextInterval = this.fakeTrafficConfig.randomDecoyIntervals ? 
-                    Math.random() * (this.fakeTrafficConfig.maxInterval - this.fakeTrafficConfig.minInterval) + 
-                    this.fakeTrafficConfig.minInterval :
+                    this.getUnbiasedRandomInRange(this.fakeTrafficConfig.minInterval, Math.min(this.fakeTrafficConfig.maxInterval, 60000)) : // Cap at 60 seconds
                     this.fakeTrafficConfig.minInterval;
                 
                 // Minimum interval 15 seconds for stability
@@ -4943,7 +4990,10 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
         };
 
         // Start fake traffic generation with longer initial delay
-        const initialDelay = Math.random() * this.fakeTrafficConfig.maxInterval + EnhancedSecureWebRTCManager.TIMEOUTS.DECOY_INITIAL_DELAY; // Add 5 seconds minimum
+        // Use a reasonable range for initial delay (5-30 seconds)
+        const minDelay = EnhancedSecureWebRTCManager.TIMEOUTS.DECOY_INITIAL_DELAY;
+        const maxDelay = Math.min(this.fakeTrafficConfig.maxInterval, 30000); // Cap at 30 seconds
+        const initialDelay = this.getUnbiasedRandomInRange(minDelay, maxDelay);
         this.fakeTrafficTimer = setTimeout(sendFakeMessage, initialDelay);
     }
 
@@ -4955,13 +5005,10 @@ this._secureLog('info', '🔒 Enhanced Mutex system fully initialized and valida
     }
 
     generateFakeMessage() {
-        const pattern = this.fakeTrafficConfig.patterns[
-            Math.floor(Math.random() * this.fakeTrafficConfig.patterns.length)
-        ];
+        const patternIndex = this.getUnbiasedRandomInRange(0, this.fakeTrafficConfig.patterns.length - 1);
+        const pattern = this.fakeTrafficConfig.patterns[patternIndex];
         
-        const size = Math.floor(Math.random() * 
-            (this.fakeTrafficConfig.maxSize - this.fakeTrafficConfig.minSize + 1)) + 
-            this.fakeTrafficConfig.minSize;
+        const size = this.getUnbiasedRandomInRange(this.fakeTrafficConfig.minSize, this.fakeTrafficConfig.maxSize);
         
         const fakeData = crypto.getRandomValues(new Uint8Array(size));
         
@@ -5562,7 +5609,7 @@ async processOrderedPackets() {
 
     addNoise(data) {
         const dataArray = new Uint8Array(data);
-        const noiseSize = Math.floor(Math.random() * 32) + 8; // 8-40 bytes
+        const noiseSize = this.getUnbiasedRandomInRange(8, 40); // 8-40 bytes
         const noise = crypto.getRandomValues(new Uint8Array(noiseSize));
         
         const result = new Uint8Array(dataArray.length + noiseSize);
@@ -5607,12 +5654,12 @@ async processOrderedPackets() {
 
     addRandomHeaders(data) {
         const dataArray = new Uint8Array(data);
-        const headerCount = Math.floor(Math.random() * 3) + 1; // 1-3 headers
+        const headerCount = this.getUnbiasedRandomInRange(1, 3); // 1-3 headers
         let totalHeaderSize = 0;
         
         // Calculate total header size
         for (let i = 0; i < headerCount; i++) {
-            totalHeaderSize += 4 + Math.floor(Math.random() * 16) + 4; // size + data + checksum
+            totalHeaderSize += 4 + this.getUnbiasedRandomInRange(0, 15) + 4; // size + data + checksum
         }
         
         const result = new Uint8Array(totalHeaderSize + dataArray.length);
@@ -5620,10 +5667,21 @@ async processOrderedPackets() {
         
         // Add random headers
         for (let i = 0; i < headerCount; i++) {
-            const headerName = this.fingerprintMask.headerVariations[
-                Math.floor(Math.random() * this.fingerprintMask.headerVariations.length)
-            ];
-            const headerData = crypto.getRandomValues(new Uint8Array(Math.floor(Math.random() * 16) + 4));
+            // Generate unbiased random index for header selection
+            let headerIndex;
+            do {
+                headerIndex = crypto.getRandomValues(new Uint8Array(1))[0];
+            } while (headerIndex >= 256 - (256 % this.fingerprintMask.headerVariations.length));
+            
+            const headerName = this.fingerprintMask.headerVariations[headerIndex % this.fingerprintMask.headerVariations.length];
+            
+            // Generate unbiased random size for header data (4-19 bytes)
+            let headerSize;
+            do {
+                headerSize = crypto.getRandomValues(new Uint8Array(1))[0];
+            } while (headerSize >= 256 - (256 % 16));
+            
+            const headerData = crypto.getRandomValues(new Uint8Array((headerSize % 16) + 4));
             
             // Header structure: [size:4][name:4][data:variable][checksum:4]
             const headerView = new DataView(result.buffer, offset);
@@ -6520,11 +6578,10 @@ async processMessage(data) {
         if (this.sessionConstraints?.hasAntiFingerprinting) {
             this.securityFeatures.hasAntiFingerprinting = true;
             this.antiFingerprintingConfig.enabled = true;
-            if (this.currentSecurityLevel === 'enhanced') {
-                this.antiFingerprintingConfig.randomizeSizes = false;
-                this.antiFingerprintingConfig.maskPatterns = false;
-                this.antiFingerprintingConfig.useRandomHeaders = false;
-            }
+            // Enable full anti-fingerprinting features
+            this.antiFingerprintingConfig.randomizeSizes = true;
+            this.antiFingerprintingConfig.maskPatterns = true;
+            this.antiFingerprintingConfig.useRandomHeaders = true;
         }
         
         this.notifySecurityUpgrade(2);
@@ -6535,10 +6592,7 @@ async processMessage(data) {
 
         // Method to enable Stage 3 features (traffic obfuscation)
         enableStage3Security() {
-            if (this.currentSecurityLevel !== 'maximum') {
-                this._secureLog('info', '🔒 Stage 3 features only available for premium sessions');
-                return;
-            }
+            this._secureLog('info', '🔒 Enabling Stage 3 features (traffic obfuscation)');
             
             if (this.sessionConstraints?.hasMessageChunking) {
                 this.securityFeatures.hasMessageChunking = true;
@@ -6559,10 +6613,7 @@ async processMessage(data) {
 
         // Method for enabling Stage 4 functions (maximum safety)
         enableStage4Security() {
-            if (this.currentSecurityLevel !== 'maximum') {
-                this._secureLog('info', '🔒 Stage 4 features only available for premium sessions');
-                return;
-            }
+            this._secureLog('info', '🔒 Enabling Stage 4 features (maximum safety)');
             
             if (this.sessionConstraints?.hasDecoyChannels && this.isConnected() && this.isVerified) {
                 this.securityFeatures.hasDecoyChannels = true;
@@ -6603,14 +6654,11 @@ async processMessage(data) {
                 .filter(([key, value]) => value === true)
                 .map(([key]) => key);
                 
-            const stage = this.currentSecurityLevel === 'basic' ? 1 : 
-                     this.currentSecurityLevel === 'enhanced' ? 2 :
-                     this.currentSecurityLevel === 'maximum' ? 4 : 1;
+            const stage = 4; // Maximum security stage
                         
             return {
                 stage: stage,
-                sessionType: this.currentSessionType,
-                securityLevel: this.currentSecurityLevel,
+                securityLevel: 'maximum',
                 activeFeatures: activeFeatures,
                 totalFeatures: Object.keys(this.securityFeatures).length,
                 activeFeaturesCount: activeFeatures.length,
@@ -6730,12 +6778,7 @@ async processMessage(data) {
 
         // Method for automatic feature enablement with stability check
         async autoEnableSecurityFeatures() {
-        if (this.currentSessionType === 'demo') {
-            this._secureLog('info', 'Demo session - keeping basic security only');
-            await this.calculateAndReportSecurityLevel();
-            this.notifySecurityUpgrade(1);
-            return;
-        }
+            this._secureLog('info', 'Starting graduated security activation - all features enabled');
 
         const checkStability = () => {
             const isStable = this.isConnected() && 
@@ -6746,18 +6789,15 @@ async processMessage(data) {
             return isStable;
         };
         
-        this._secureLog('info', ` ${this.currentSessionType} session - starting graduated security activation`);
         await this.calculateAndReportSecurityLevel();
         this.notifySecurityUpgrade(1);
         
-        if (this.currentSecurityLevel === 'enhanced' || this.currentSecurityLevel === 'maximum') {
+            // Enable all security stages progressively
             setTimeout(async () => {
                 if (checkStability()) {
                     this.enableStage2Security();
                     await this.calculateAndReportSecurityLevel(); 
                     
-                    // For maximum sessions, turn on Stage 3 and 4
-                    if (this.currentSecurityLevel === 'maximum') {
                         setTimeout(async () => {
                             if (checkStability()) {
                                 this.enableStage3Security();
@@ -6771,10 +6811,8 @@ async processMessage(data) {
                                 }, 20000);
                             }
                         }, 15000);
-                    }
                 }
             }, 10000);
-        }
     }
 
     // ============================================
@@ -9728,22 +9766,47 @@ async processMessage(data) {
                 let derivedKeys;
                 
                 try {
+                    this._secureLog('debug', 'About to call deriveSharedKeys', {
+                        operationId: operationId,
+                        privateKeyType: typeof this.ecdhKeyPair.privateKey,
+                        publicKeyType: typeof peerECDHPublicKey,
+                        saltLength: this.sessionSalt?.length,
+                        privateKeyAlgorithm: this.ecdhKeyPair.privateKey?.algorithm?.name,
+                        publicKeyAlgorithm: peerECDHPublicKey?.algorithm?.name
+                    });
+                    
                     derivedKeys = await window.EnhancedSecureCryptoUtils.deriveSharedKeys(
                         this.ecdhKeyPair.privateKey,
                         peerECDHPublicKey,
                         this.sessionSalt
                     );
+                    
+                    this._secureLog('debug', 'deriveSharedKeys completed successfully', {
+                        operationId: operationId,
+                        hasMessageKey: !!derivedKeys.messageKey,
+                        hasMacKey: !!derivedKeys.macKey,
+                        hasPfsKey: !!derivedKeys.pfsKey,
+                        hasMetadataKey: !!derivedKeys.metadataKey,
+                        hasFingerprint: !!derivedKeys.fingerprint
+                    });
                 } catch (error) {
                     this._secureLog('error', 'Failed to derive shared keys', {
                         operationId: operationId,
-                        errorType: error.constructor.name
+                        errorType: error.constructor.name,
+                        errorMessage: error.message,
+                        errorStack: error.stack,
+                        privateKeyType: typeof this.ecdhKeyPair.privateKey,
+                        publicKeyType: typeof peerECDHPublicKey,
+                        saltLength: this.sessionSalt?.length,
+                        privateKeyAlgorithm: this.ecdhKeyPair.privateKey?.algorithm?.name,
+                        publicKeyAlgorithm: peerECDHPublicKey?.algorithm?.name
                     });
                     this._throwSecureError(error, 'key_derivation');
                 }
                 
                 // Securely set keys via helper
                 await this._setEncryptionKeys(
-                    derivedKeys.encryptionKey,
+                    derivedKeys.messageKey,
                     derivedKeys.macKey,
                     derivedKeys.metadataKey,
                     derivedKeys.fingerprint
@@ -10486,7 +10549,7 @@ async processMessage(data) {
                 this.sessionSalt
             );
             
-            this.encryptionKey = derivedKeys.encryptionKey;
+            this.encryptionKey = derivedKeys.messageKey;
             this.macKey = derivedKeys.macKey;
             this.metadataKey = derivedKeys.metadataKey;
             this.keyFingerprint = derivedKeys.fingerprint;
@@ -11116,6 +11179,10 @@ async processMessage(data) {
                 throw new Error('Connection lost during message preparation');
             }
             
+            // Note: master key session is managed by SecureMasterKeyManager
+            // Do not gate here on _isUnlocked to avoid false blocking
+            // Session timers are handled inside the master key manager on key access
+            
             // Validate keys inside critical section
             if (!this.encryptionKey || !this.macKey || !this.metadataKey) {
                 throw new Error('Encryption keys not initialized');
@@ -11172,7 +11239,19 @@ async processMessage(data) {
                     operationId: operationId,
                     errorType: error.constructor.name
                 });
-                throw error;
+                
+                // Improved user-facing error messages (English)
+                if (error.message.includes('Session expired')) {
+                    throw new Error('Session expired. Please enter your password to unlock.');
+                } else if (error.message.includes('Encryption keys not initialized')) {
+                    throw new Error('Session expired due to inactivity. Please reconnect to the chat.');
+                } else if (error.message.includes('Connection lost')) {
+                    throw new Error('Connection lost. Please check your Internet connection.');
+                } else if (error.message.includes('Rate limit exceeded')) {
+                    throw new Error('Message rate limit exceeded. Please wait before sending another message.');
+                } else {
+                    throw error;
+                }
             }
         }, 2000); // Reduced timeout for crypto operations
     }
@@ -11528,7 +11607,7 @@ async processMessage(data) {
             if (error.message.includes('Connection not ready')) {
                 throw new Error('Connection not ready for file transfer. Check connection status.');
             } else if (error.message.includes('Encryption keys not initialized')) {
-                throw new Error('Encryption keys not initialized. Try reconnecting.');
+                throw new Error('Session expired due to inactivity. Please reconnect to the chat.');
             } else if (error.message.includes('Transfer timeout')) {
                 throw new Error('File transfer timeout. Check connection and try again.');
             } else {
@@ -11644,11 +11723,10 @@ async processMessage(data) {
             
             // Update session state
             this.currentSession = sessionData;
-            this.sessionManager = sessionData.sessionManager;
             
             // FIX: More lenient checks for activation
             const hasKeys = !!(this.encryptionKey && this.macKey);
-            const hasSession = !!(this.sessionManager && (this.sessionManager.hasActiveSession?.() || sessionData.sessionId));
+            const hasSession = !!(sessionData.sessionId);
             
             // Force connection status if there is an active session
             if (hasSession) {
@@ -12508,7 +12586,7 @@ class SecureKeyStorage {
                 // Additional info
                 connectionId: this.connectionId,
                 keyFingerprint: this.keyFingerprint,
-                currentSecurityLevel: this.currentSecurityLevel,
+                currentSecurityLevel: 'maximum',
                 timestamp: Date.now()
             };
 
@@ -13056,8 +13134,8 @@ class SecureMasterKeyManager {
         this._lastActivity = null;
         
         // Configuration
-        this._sessionTimeoutMs = 15 * 60 * 1000; // 15 minutes
-        this._inactivityTimeoutMs = 5 * 60 * 1000; // 5 minutes
+        this._sessionTimeoutMs = 60 * 60 * 1000; // 60 minutes (увеличено с 15 минут)
+        this._inactivityTimeoutMs = 30 * 60 * 1000; // 30 minutes (увеличено с 5 минут)
         
         // PBKDF2 parameters
         this._pbkdf2Iterations = 100000; // 100k iterations
