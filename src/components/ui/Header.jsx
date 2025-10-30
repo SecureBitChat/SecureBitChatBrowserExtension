@@ -5,15 +5,14 @@ const EnhancedMinimalHeader = ({
     onDisconnect, 
     isConnected, 
     securityLevel, 
-    sessionManager, 
-    sessionTimeLeft,
     webrtcManager 
 }) => {
-    const [currentTimeLeft, setCurrentTimeLeft] = React.useState(sessionTimeLeft || 0);
-    const [hasActiveSession, setHasActiveSession] = React.useState(false);
-    const [sessionType, setSessionType] = React.useState('unknown');
     const [realSecurityLevel, setRealSecurityLevel] = React.useState(null);
     const [lastSecurityUpdate, setLastSecurityUpdate] = React.useState(0);
+    // Added local session state to remove references errors after session timer removal
+    const [hasActiveSession, setHasActiveSession] = React.useState(false);
+    const [currentTimeLeft, setCurrentTimeLeft] = React.useState(0);
+    const [sessionType, setSessionType] = React.useState('unknown');
 
     // ============================================
     // FIXED SECURITY UPDATE LOGIC
@@ -64,11 +63,11 @@ const EnhancedMinimalHeader = ({
                         } else if (window.DEBUG_MODE) {
                     }
                 } else {
-                    console.warn(' Security calculation returned invalid data');
+                    
                 }
                 
             } catch (error) {
-                console.error(' Error in real security calculation:', error);
+                
             } finally {
                 isUpdating = false;
             }
@@ -126,11 +125,11 @@ const EnhancedMinimalHeader = ({
                         if (securityData && securityData.isRealData !== false) {
                             setRealSecurityLevel(securityData);
                             setLastSecurityUpdate(Date.now());
-                            console.log('✅ Header security level force-updated');
+                            
                         }
                     })
                     .catch(error => {
-                        console.error('❌ Force update failed:', error);
+                        
                     });
             } else {
                 setLastSecurityUpdate(0); 
@@ -159,7 +158,7 @@ const EnhancedMinimalHeader = ({
         setHasActiveSession(true);
         setCurrentTimeLeft(0);
         setSessionType('premium'); // All features enabled
-    }, [sessionTimeLeft]);
+    }, []);
 
     React.useEffect(() => {
         const handleForceUpdate = (event) => {
@@ -171,9 +170,7 @@ const EnhancedMinimalHeader = ({
 
         // Connection cleanup handler (use existing event from module)
         const handleConnectionCleaned = () => {
-            if (window.DEBUG_MODE) {
-                console.log('🧹 Connection cleaned - clearing security data in header');
-            }
+            
 
             setRealSecurityLevel(null);
             setLastSecurityUpdate(0);
@@ -184,9 +181,7 @@ const EnhancedMinimalHeader = ({
         };
 
         const handlePeerDisconnect = () => {
-            if (window.DEBUG_MODE) {
-                console.log('👋 Peer disconnect detected - clearing security data in header');
-            }
+            
 
             setRealSecurityLevel(null);
             setLastSecurityUpdate(0);
@@ -237,15 +232,12 @@ const EnhancedMinimalHeader = ({
         if (webrtcManager && window.EnhancedSecureCryptoUtils) {
             try {
                 realTestResults = await window.EnhancedSecureCryptoUtils.calculateSecurityLevel(webrtcManager);
-                console.log('✅ Real security tests completed:', realTestResults);
+                
             } catch (error) {
-                console.error('❌ Real security tests failed:', error);
+                
             }
         } else {
-            console.log('⚠️ Cannot run security tests:', {
-                webrtcManager: !!webrtcManager,
-                cryptoUtils: !!window.EnhancedSecureCryptoUtils
-            });
+            
         }
 
         // If no real test results and no existing security level, show progress message
@@ -268,16 +260,14 @@ const EnhancedMinimalHeader = ({
                 details: 'Security verification not available',
                 isRealData: false,
                 passedChecks: 0,
-                totalChecks: 0,
-                sessionType: 'unknown'
+                totalChecks: 0
             };
-            console.log('Using fallback security data:', securityData);
+            
         }
 
         // Detailed information about the REAL security check
         let message = `REAL-TIME SECURITY VERIFICATION\n\n`;
         message += `Security Level: ${securityData.level} (${securityData.score}%)\n`;
-        message += `Session Type: ${securityData.sessionType || 'premium'}\n`;
         message += `Verification Time: ${new Date(securityData.timestamp).toLocaleTimeString()}\n`;
         message += `Data Source: ${securityData.isRealData ? 'Real Cryptographic Tests' : 'Simulated Data'}\n\n`;
         
@@ -465,7 +455,6 @@ const EnhancedMinimalHeader = ({
     const config = getStatusConfig();
     const displaySecurityLevel = isConnected ? (realSecurityLevel || securityLevel) : null;
     
-    const shouldShowTimer = hasActiveSession && currentTimeLeft > 0 && window.SessionTimer;
 
     // ============================================
     // DATA RELIABILITY INDICATOR
@@ -505,18 +494,7 @@ const EnhancedMinimalHeader = ({
     // ============================================
 
     React.useEffect(() => {
-        window.debugHeaderSecurity = () => {
-            console.log('🔍 Header Security Debug:', {
-                realSecurityLevel,
-                lastSecurityUpdate,
-                isConnected,
-                webrtcManagerProp: !!webrtcManager,
-                windowWebrtcManager: !!window.webrtcManager,
-                cryptoUtils: !!window.EnhancedSecureCryptoUtils,
-                displaySecurityLevel: displaySecurityLevel,
-                securityDetails: securityDetails
-            });
-        };
+        window.debugHeaderSecurity = undefined;
         
         return () => {
             delete window.debugHeaderSecurity;
@@ -561,7 +539,7 @@ const EnhancedMinimalHeader = ({
                         React.createElement('p', {
                             key: 'subtitle',
                             className: 'text-xs sm:text-sm text-muted hidden sm:block'
-                        }, 'End-to-end freedom v4.3.120')
+                        }, 'End-to-end freedom v4.4.99')
                     ])
                 ]),
 
@@ -570,13 +548,6 @@ const EnhancedMinimalHeader = ({
                     key: 'status-section',
                     className: 'flex items-center space-x-2 sm:space-x-3'
                 }, [
-                    // Session Timer - all features enabled by default
-                    shouldShowTimer && React.createElement(window.SessionTimer, {
-                        key: 'session-timer',
-                        timeLeft: currentTimeLeft,
-                        sessionType: sessionType,
-                        onDisconnect: onDisconnect
-                    }),
 
                     displaySecurityLevel && React.createElement('div', {
                         key: 'security-level',

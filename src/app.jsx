@@ -2937,26 +2937,15 @@
         
                                 let offer;
                                 try {
-                                    console.log('DEBUG: Processing offer input:', offerInput.trim().substring(0, 100) + '...');
-                                    console.log('DEBUG: decodeAnyPayload available:', typeof window.decodeAnyPayload === 'function');
-                                    console.log('DEBUG: decompressIfNeeded available:', typeof window.decompressIfNeeded === 'function');
-                                    
                                     // Prefer binary decode first, then gzip JSON
                                     if (typeof window.decodeAnyPayload === 'function') {
-                                        console.log('DEBUG: Using decodeAnyPayload...');
                                         const any = window.decodeAnyPayload(offerInput.trim());
-                                        console.log('DEBUG: decodeAnyPayload result type:', typeof any);
-                                        console.log('DEBUG: decodeAnyPayload result:', any);
                                         offer = (typeof any === 'string') ? JSON.parse(any) : any;
                                     } else {
-                                        console.log('DEBUG: Using decompressIfNeeded...');
                                         const rawText = (typeof window.decompressIfNeeded === 'function') ? window.decompressIfNeeded(offerInput.trim()) : offerInput.trim();
-                                        console.log('DEBUG: decompressIfNeeded result:', rawText.substring(0, 100) + '...');
                                         offer = JSON.parse(rawText);
                                     }
-                                    console.log('DEBUG: Final offer:', offer);
                                 } catch (parseError) {
-                                    console.error('DEBUG: Parse error:', parseError);
                                     throw new Error(`Invalid invitation format: ${parseError.message}`);
                                 }
         
